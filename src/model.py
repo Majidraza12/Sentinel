@@ -3,10 +3,13 @@ import torch.nn as nn
 from torchvision.models import resnet18, ResNet18_Weights
 
 class CNNLSTM(nn.Module):
-    def __init__(self, hidden_size=256, num_classes=2):
+    # pretrained=False skips the ImageNet download; use it when a trained
+    # checkpoint is loaded right after (e.g. the web server), since the
+    # checkpoint overwrites every backbone weight anyway.
+    def __init__(self, hidden_size=256, num_classes=2, pretrained=True):
         super().__init__()
 
-        self.cnn = resnet18(weights=ResNet18_Weights.DEFAULT)
+        self.cnn = resnet18(weights=ResNet18_Weights.DEFAULT if pretrained else None)
         self.cnn.fc = nn.Identity()  # output: 512-dim frame features
 
         self.lstm = nn.LSTM(
@@ -49,10 +52,10 @@ class CNNMeanPool(nn.Module):
     asymmetry, since a fair pool-vs-LSTM swap changes exactly that dimension.
     """
 
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=2, pretrained=True):
         super().__init__()
 
-        self.cnn = resnet18(weights=ResNet18_Weights.DEFAULT)
+        self.cnn = resnet18(weights=ResNet18_Weights.DEFAULT if pretrained else None)
         self.cnn.fc = nn.Identity()  # output: 512-dim frame features
 
         self.classifier = nn.Sequential(

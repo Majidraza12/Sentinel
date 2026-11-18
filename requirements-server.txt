@@ -1,0 +1,9 @@
+# Runtime deps for the web app (server/ + built web/). Training deps are in
+# requirements.txt. torch/torchvision CPU wheels are installed separately in
+# the Dockerfile from the PyTorch index to keep the image small.
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.20
+opencv-python-headless==4.13.0.92
+pillow==11.2.1
+numpy<3

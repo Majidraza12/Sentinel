@@ -127,7 +127,12 @@ repo; rerun only if you want them fresh).
 ## Step 6 — Demo (any time)
 
 ```powershell
-# Web app: opens in your browser, upload a clip
+# Web app (FastAPI + React). Build the frontend once, then one server hosts it all.
+cd web; npm install; npm run build; cd ..
+.\.venv\Scripts\python.exe -m uvicorn server.main:app --port 8000
+# -> open http://localhost:8000
+
+# Original Streamlit demo (still works)
 .\.venv\Scripts\python.exe -m streamlit run src\app.py
 
 # CLI: one video

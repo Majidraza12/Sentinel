@@ -7,5 +7,13 @@ outputs/*.log
 
 # Checkpoints from experiment runs (large, regenerable).
 # The two reference checkpoints in outputs/checkpoints/ are kept.
-outputs/checkpoints/ablation/
+outputs/checkpoints/ablation/*
+# ...except the mean-pool checkpoint the web app offers as its second model.
+!outputs/checkpoints/ablation/frame_mean_seed0.pth
 outputs/checkpoints/overfit_probe/
+
+# Web app
+web/node_modules/
+web/dist/
+.playwright-mcp/
+.pytest_cache/

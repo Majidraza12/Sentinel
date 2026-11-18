@@ -1,0 +1,13 @@
+.git
+.venv
+**/__pycache__
+**/node_modules
+web/dist
+notebooks
+data/processed
+data/raw
+outputs/plots
+outputs/*.log
+.playwright-mcp
+*.md
+!web/**/*.md

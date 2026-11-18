@@ -2,13 +2,55 @@
 
 Classifies short surveillance-style video clips as **violent** or **non-violent**
 with a **CNN-LSTM** (ResNet-18 per-frame → LSTM over 16 sampled frames → binary
-head), in PyTorch, with a Streamlit demo. Built for CS-495.
+head), in PyTorch, served through a **FastAPI + React web app** that shows the
+model's frame-by-frame reasoning. Built for CS-495.
 
 The emphasis of this repo is **experimental discipline**: reproducible runs
 (fixed seeds), model selection by validation loss (not the last, most-overfit
 epoch), a controlled **temporal ablation** (does the LSTM beat simple frame
 averaging?), and an **overfitting diagnostic** — all reported honestly, including
 the dataset's limitations.
+
+---
+
+## Web app
+
+**Sentinel** is a full-stack demo: a React/TypeScript frontend on a FastAPI
+inference API.
+
+- **Console.** Pick any of the 53 held-out test clips, or upload your own video.
+  You see the verdict, the confidence, whether it matched ground truth, and a
+  **frame-by-frame timeline** of the model's belief across the 16 frames it
+  actually sampled. Hover a frame to inspect it, or click to jump the video
+  there. You can switch between the CNN-LSTM and the mean-pool baseline, or
+  overlay both. A "Model missed" filter jumps straight to its failures.
+- **Results.** Confusion matrix, ablation (mean ± std over seeds), and training
+  curves, all read live from `outputs/`, not hand-copied.
+- **Method.** Pipeline, tensor shapes, data splits, and system architecture.
+
+```bash
+# Dev: API with hot reload on :8000, Vite on :5173 (proxies /api to :8000)
+pip install -r requirements.txt -r requirements-server.txt
+python -m uvicorn server.main:app --reload --port 8000
+cd web && npm install && npm run dev          # -> http://localhost:5173
+
+# Prod-style: build the frontend once, then FastAPI serves everything
+cd web && npm run build && cd ..
+python -m uvicorn server.main:app --port 8000   # -> http://localhost:8000
+
+# Docker (one image: frontend + API + both checkpoints)
+docker build -t sentinel . && docker run -p 7860:7860 sentinel
+
+# Tests (11 API tests: shapes, validation, path traversal, upload round-trip,
+# confusion matrix consistent with the logged report)
+python -m pytest server/tests -q
+```
+
+The server preprocesses frames exactly like `src/dataset.py`, so there is no
+train/serve skew. Scoring the test set through the API
+(`python server/precompute.py`) reproduces the reported 47/53. Dataset clips are
+MPEG-4 Part 2, which browsers can't play, so the server transcodes previews to
+VP8 WebM with OpenCV and caches them.
 
 ---
 
@@ -119,8 +161,9 @@ python src/train_overfit_probe.py
 python src/evaluate.py
 
 # 6. Demo
-streamlit run src/app.py            # upload a clip, get a prediction
+python -m uvicorn server.main:app   # web app (build web/ first, see "Web app")
 python src/predict.py path/to.mp4   # CLI single-video inference
+streamlit run src/app.py            # original minimal Streamlit demo
 ```
 
 Runs are seeded (`src/train_utils.py:set_seed`: Python/NumPy/torch RNGs, cuDNN
@@ -179,8 +222,16 @@ src/
   make_ablation_table.py # evaluate all checkpoints -> ablation.csv + .md
   train_overfit_probe.py # augmentation + frozen-backbone overfitting diagnostic
   evaluate.py            # evaluate_checkpoint(...) + single-model report
-  predict.py / app.py    # CLI + Streamlit inference (model cached)
+  predict.py / app.py    # CLI + original Streamlit inference (model cached)
   train.py               # original single-run trainer (kept for reference)
+server/
+  main.py                # FastAPI routes; also serves the built frontend
+  inference.py           # model registry, frame sampling, per-timestep scores
+  media.py               # test-clip catalog, uploads, WebM preview transcoding
+  metrics.py             # outputs/ -> JSON for the Results page
+  precompute.py          # score the test set -> web_test_predictions.csv
+  tests/                 # pytest API tests
+web/                     # React 19 + TypeScript + Vite + Tailwind frontend
 outputs/                 # checkpoints, metrics, plots
 data/splits/             # train / val / test
 ```
